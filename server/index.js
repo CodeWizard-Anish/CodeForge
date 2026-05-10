@@ -2,20 +2,19 @@ import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import fs from 'fs';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 import path from 'path';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import Snippet from './models/Snippet.js'; // Import your new database model
+import Snippet from './models/Snippet.js';
 import axios from 'axios';
+
 // Load the secret variables from the .env file
 dotenv.config();
 
 const app = express();
-const port = 5000;
-const execPromise = promisify(exec);
+const port = process.env.PORT || 5000;
 
+// --- STRICT CORS POLICY ---
 const corsOptions = {
   origin: ['http://localhost:5173', 'https://code-forge-wine.vercel.app'], 
   optionsSuccessStatus: 200 
@@ -30,193 +29,76 @@ mongoose.connect(process.env.MONGO_URI)
 
 const upload = multer({ dest: 'uploads/' });
 
-// --- THE AUTOMATED GRADING ENGINE ---
-const testHarness = {
-  'p1': { // Two Sum
-    'js': (code) => `
-${code}
-// --- HIDDEN TEST RUNNER ---
-try {
-  let passed = 0;
-  console.log("Running Test Cases...\\n");
-  
-  const t1 = twoSum([2, 7, 11, 15], 9);
-  if (t1 && t1[0]===0 && t1[1]===1) { console.log("✅ Test 1 Passed: [2,7,11,15], target=9"); passed++; } 
-  else { console.log("❌ Test 1 Failed. Expected [0,1], Got: [" + t1 + "]"); }
-
-  const t2 = twoSum([3, 2, 4], 6);
-  if (t2 && t2[0]===1 && t2[1]===2) { console.log("✅ Test 2 Passed: [3,2,4], target=6"); passed++; } 
-  else { console.log("❌ Test 2 Failed. Expected [1,2], Got: [" + t2 + "]"); }
-
-  const t3 = twoSum([3, 3], 6);
-  if (t3 && t3[0]===0 && t3[1]===1) { console.log("✅ Test 3 Passed: [3,3], target=6"); passed++; } 
-  else { console.log("❌ Test 3 Failed. Expected [0,1], Got: [" + t3 + "]"); }
-
-  console.log(\`\\n🏆 Result: \${passed}/3 Test Cases Passed\`);
-  if (passed === 3) console.log("Status: ACCEPTED");
-} catch(e) { console.log("Execution Error: " + e.message); }
-`,
-    'py': (code) => `
-from typing import List
-${code}
-# --- HIDDEN TEST RUNNER ---
-if __name__ == "__main__":
-    try:
-        passed = 0
-        print("Running Test Cases...\\n")
-        
-        t1 = twoSum([2, 7, 11, 15], 9)
-        if t1 == [0, 1]:
-            print("✅ Test 1 Passed: [2,7,11,15], target=9")
-            passed += 1
-        else:
-            print(f"❌ Test 1 Failed. Expected [0, 1], Got: {t1}")
-            
-        t2 = twoSum([3, 2, 4], 6)
-        if t2 == [1, 2]:
-            print("✅ Test 2 Passed: [3,2,4], target=6")
-            passed += 1
-        else:
-            print(f"❌ Test 2 Failed. Expected [1, 2], Got: {t2}")
-            
-        t3 = twoSum([3, 3], 6)
-        if t3 == [0, 1]:
-            print("✅ Test 3 Passed: [3,3], target=6")
-            passed += 1
-        else:
-            print(f"❌ Test 3 Failed. Expected [0, 1], Got: {t3}")
-
-        print(f"\\n🏆 Result: {passed}/3 Test Cases Passed")
-        if passed == 3:
-            print("Status: ACCEPTED")
-    except Exception as e:
-        print(f"Execution Error: {e}")
-`,
-    'cpp': (code) => `
-#include <iostream>
-#include <vector>
-#include <unordered_map>
-using namespace std;
-${code}
-// --- HIDDEN TEST RUNNER ---
-int main() {
-    int passed = 0;
-    cout << "Running Test Cases...\\n\\n";
-    
-    try {
-        vector<int> t1_nums = {2, 7, 11, 15};
-        vector<int> t1 = twoSum(t1_nums, 9);
-        if(t1.size() == 2 && t1[0] == 0 && t1[1] == 1) { cout << "✅ Test 1 Passed\\n"; passed++; }
-        else { cout << "❌ Test 1 Failed\\n"; }
-
-        vector<int> t2_nums = {3, 2, 4};
-        vector<int> t2 = twoSum(t2_nums, 6);
-        if(t2.size() == 2 && t2[0] == 1 && t2[1] == 2) { cout << "✅ Test 2 Passed\\n"; passed++; }
-        else { cout << "❌ Test 2 Failed\\n"; }
-
-        vector<int> t3_nums = {3, 3};
-        vector<int> t3 = twoSum(t3_nums, 6);
-        if(t3.size() == 2 && t3[0] == 0 && t3[1] == 1) { cout << "✅ Test 3 Passed\\n"; passed++; }
-        else { cout << "❌ Test 3 Failed\\n"; }
-
-        cout << "\\n🏆 Result: " << passed << "/3 Test Cases Passed\\n";
-        if(passed == 3) cout << "Status: ACCEPTED\\n";
-    } catch(...) { cout << "Execution Error\\n"; }
-    return 0;
-}
-`
-  }
-};
-
-// 1. Upload Endpoint (Now Saves to MongoDB!)
-app.post('/api/execute', async (req, res) => {
+// ==========================================
+// 1. UPLOAD ENDPOINT (Restored!)
+// ==========================================
+app.post('/api/upload', upload.single('codeFile'), async (req, res) => {
   try {
-    const { codeLines, filename } = req.body;
-    const codeContent = codeLines.join('\n');
-    const ext = filename.split('.').pop();
-    
-    // JDoodle uses specific language identifiers
-    let language = 'nodejs'; 
-    let versionIndex = '4'; // Node.js version 17
-
-    if (ext === 'py') {
-      language = 'python3';
-      versionIndex = '4'; // Python 3.9
-    } else if (ext === 'cpp') {
-      language = 'cpp17';
-      versionIndex = '1'; // C++ 17
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
     }
 
-    // Send to JDoodle
-    const response = await axios.post('https://codeforge-bipz.onrender.com/v1/execute', {
-      clientId: process.env.JDOODLE_CLIENT_ID,         
-  clientSecret: process.env.JDOODLE_CLIENT_SECRET, // <--- Put your Secret here
-      script: codeContent,
-      language: language,
-      versionIndex: versionIndex
+    // Read the file the user just uploaded
+    const fileContent = fs.readFileSync(req.file.path, 'utf-8');
+    
+    // Split the file into an array of lines (removing weird Windows carriage returns)
+    const lines = fileContent.split('\n').map(line => line.replace(/\r/g, ''));
+
+    // Save to MongoDB
+    const newSnippet = new Snippet({
+      title: req.file.originalname,
+      lines: lines
     });
+    await newSnippet.save();
+    console.log("💾 Saved to Database:", req.file.originalname);
 
-    const data = response.data;
-    
-    console.log("\n--- JDOODLE API RESPONSE ---");
-    console.log(data);
-    console.log("----------------------------\n");
+    // Delete the temporary file from the Render server so it doesn't clutter
+    fs.unlinkSync(req.file.path);
 
-    // JDoodle puts the console text inside 'output'
-    if (data.output) {
-      res.json({ output: data.output });
-    } else {
-      res.json({ error: `JDoodle Error: ${data.error}` });
-    }
-
+    res.json(newSnippet);
   } catch (error) {
-    console.error("Execution Error:", error.response?.data || error.message);
-    res.status(500).json({ error: "Failed to connect to execution engine." });
+    console.error("Upload Error:", error);
+    res.status(500).json({ error: "Failed to process uploaded file." });
   }
 });
 
-// 2. Execution Endpoint
-// Remove any Docker or child_process imports at the top of your file!
-
+// ==========================================
+// 2. EXECUTION ENDPOINT (Fixed JDoodle URL)
+// ==========================================
 app.post('/api/execute', async (req, res) => {
   try {
     const { codeLines, filename } = req.body;
     let codeContent = codeLines.join('\n');
 
-    // 1. Detect the language from the file extension
+    // Detect the language from the file extension
     const ext = filename.split('.').pop();
     let language = 'nodejs'; 
     let versionIndex = '4'; // Node.js v17
 
-    // 2. Map languages and secretly inject required LeetCode-style imports
+    // Map languages and secretly inject required LeetCode-style imports
     if (ext === 'py') {
       language = 'python3';
       versionIndex = '4'; // Python 3.9
-      // Inject standard Python typing for lists, dictionaries, etc.
       codeContent = "from typing import *\n" + codeContent; 
       
     } else if (ext === 'cpp') {
       language = 'cpp17';
       versionIndex = '1'; // C++ 17
-      // Inject standard C++ headers and namespace
       codeContent = "#include <iostream>\n#include <vector>\n#include <string>\nusing namespace std;\n" + codeContent;
     }
 
-    // 3. Send the code securely to the JDoodle API
-    const response = await axios.post('https://codeforge-bipz.onrender.com/v1/execute', {
+    // Send the code securely to the ACTUAL JDoodle API
+    const response = await axios.post('https://api.jdoodle.com/v1/execute', {
       clientId: process.env.JDOODLE_CLIENT_ID,         
-  clientSecret: process.env.JDOODLE_CLIENT_SECRET, // <--- Replace this!
+      clientSecret: process.env.JDOODLE_CLIENT_SECRET, 
       script: codeContent,
       language: language,
       versionIndex: versionIndex
     });
 
     const data = response.data;
-    
-    // Optional: Keep this console.log if you want to see exactly what JDoodle returns in your terminal
-    // console.log("\n--- JDOODLE API RESPONSE ---", data, "\n----------------------------\n");
 
-    // 4. Handle JDoodle's specific response structure and send back to React
+    // Handle JDoodle's specific response structure and send back to React
     if (data.output) {
       res.json({ output: data.output });
     } else if (data.error) {
@@ -230,10 +112,12 @@ app.post('/api/execute', async (req, res) => {
     res.status(500).json({ error: "Failed to connect to execution engine." });
   }
 });
-// --- HISTORY ENDPOINT (Get all past uploads) ---
+
+// ==========================================
+// 3. HISTORY ENDPOINT
+// ==========================================
 app.get('/api/snippets', async (req, res) => {
   try {
-    // Fetch all snippets and sort them by newest first
     const snippets = await Snippet.find().sort({ createdAt: -1 });
     res.json(snippets);
   } catch (error) {
@@ -242,7 +126,9 @@ app.get('/api/snippets', async (req, res) => {
   }
 });
 
-// --- DELETE ENDPOINT (Trash Can) ---
+// ==========================================
+// 4. DELETE ENDPOINT
+// ==========================================
 app.delete('/api/snippets/:id', async (req, res) => {
   try {
     await Snippet.findByIdAndDelete(req.params.id);
@@ -254,4 +140,4 @@ app.delete('/api/snippets/:id', async (req, res) => {
   }
 });
 
-app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+app.listen(port, () => console.log(`Server running on port ${port}`));

@@ -37,9 +37,17 @@ export default function App() {
   const fetchHistory = async () => {
     try {
       const res = await fetch('https://codeforge-api.onrender.com/api/snippets');
+      
+      // SAFETY CHECK: Ensure the server sent back a 200 OK before parsing JSON
+      if (!res.ok) {
+        throw new Error(`Server returned ${res.status}: Ensure /api/snippets exists on backend.`);
+      }
+      
       const data = await res.json();
       setHistory(data);
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error("History Fetch Error:", e.message); 
+    }
   };
 
   const handleEditorDidMount = (editor) => { editorRef.current = editor; };
@@ -50,7 +58,15 @@ export default function App() {
     const formData = new FormData();
     formData.append('codeFile', file);
     try {
-      const res = await fetch('https://codeforge-api.onrender.com/api/upload', { method: 'POST', body: formData });
+      const res = await fetch('https://codeforge-api.onrender.com/api/upload', { 
+        method: 'POST', 
+        body: formData 
+      });
+
+      if (!res.ok) {
+        throw new Error(`Upload Failed with status ${res.status}`);
+      }
+
       const data = await res.json();
       setDrillSnippet(data);
       setDrillLineIndex(0);
@@ -61,7 +77,10 @@ export default function App() {
       setOutput('');
       setViewMode('drill');
       fetchHistory();
-    } catch (e) { alert('Failed to upload file.'); }
+    } catch (e) { 
+      console.error(e);
+      alert('Failed to upload file. Check console for backend errors.'); 
+    }
   };
 
   const loadHistorySnippet = (snippet) => {
@@ -78,10 +97,17 @@ export default function App() {
   const handleDeleteSnippet = async (e, id) => {
     e.stopPropagation();
     try {
-      await fetch(`https://codeforge-api.onrender.com/api/snippets/${id}`, { method: 'DELETE' });
+      const res = await fetch(`https://codeforge-api.onrender.com/api/snippets/${id}`, { 
+        method: 'DELETE' 
+      });
+      
+      if (!res.ok) throw new Error('Failed to delete on server');
+
       setHistory(prev => prev.filter(s => s._id !== id));
       if (drillSnippet && drillSnippet._id === id) setViewMode('welcome');
-    } catch (e) { alert('Failed to delete snippet.'); }
+    } catch (e) { 
+      alert('Failed to delete snippet.'); 
+    }
   };
 
   const loadProblem = (problem) => {
@@ -135,6 +161,12 @@ export default function App() {
           problemId: activeProblem?.id
         })
       });
+
+      // SAFETY CHECK: Prevent the DOCTYPE crash
+      if (!res.ok) {
+        throw new Error(`Server responded with a 404. Is the /api/execute route defined in your backend?`);
+      }
+
       const data = await res.json();
       setOutput(data.output || data.error || 'Process finished with no output.');
     } catch (e) {
@@ -148,18 +180,16 @@ export default function App() {
 
   const langLabel = (l) => l === 'cpp' ? 'C++' : l.charAt(0).toUpperCase() + l.slice(1);
 
-  // Completion %
   const drillProgress = drillSnippet
     ? Math.round((drillLineIndex / drillSnippet.lines.length) * 100)
     : 0;
 
   return (
     <div className="app-layout">
-     {/* ── SIDEBAR ── */}
+      {/* ── SIDEBAR ── */}
       <aside className={`sidebar ${!isSidebarOpen ? 'collapsed' : ''}`}>
         <div className="sidebar-top">
           <div className="logo-block" onClick={() => setViewMode('welcome')}>
-            
             <div className="logo-text">CodeForge</div>
             <div className="logo-glow" />
           </div>
@@ -222,7 +252,7 @@ export default function App() {
 
         </div>
       </aside>
-              {/* ── SIDEBAR TOGGLE BUTTON ── */}
+      {/* ── SIDEBAR TOGGLE BUTTON ── */}
       <button 
         className={`sidebar-toggle-btn ${!isSidebarOpen ? 'collapsed' : ''}`}
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -259,7 +289,6 @@ export default function App() {
         {/* DRILL */}
         {viewMode === 'drill' && drillSnippet && (
           <div className="editor-container">
-            {/* Header */}
             <div className="editor-header">
               <div className="traffic-lights">
                 <div className="tl tl-red" />
@@ -280,7 +309,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Progress bar */}
             <div style={{ height: 2, background: 'var(--border-dim)' }}>
               <div style={{
                 height: '100%',
@@ -291,7 +319,6 @@ export default function App() {
               }} />
             </div>
 
-            {/* Code lines */}
             <div className="editor-body drill-body">
               {drillSnippet.lines.slice(0, drillLineIndex).map((line, i) => (
                 <div key={i} className="code-line">
@@ -323,7 +350,6 @@ export default function App() {
               )}
             </div>
 
-            {/* Done banner */}
             {drillFinished && (
               <div className="done-banner">
                 <div className="done-check">✓</div>
@@ -331,7 +357,6 @@ export default function App() {
               </div>
             )}
 
-            {/* Status bar */}
             <div className="status-bar">
               <div className="status-info">
                 {!drillFinished
@@ -351,7 +376,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Terminal */}
             {drillFinished && output && (
               <div className="terminal-panel">
                 <div className="terminal-topbar">
