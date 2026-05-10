@@ -36,7 +36,7 @@ export default function App() {
 
   const fetchHistory = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/snippets');
+      const res = await fetch('https://codeforge-api.onrender.com/api/snippets');
       const data = await res.json();
       setHistory(data);
     } catch (e) { console.error(e); }
@@ -50,7 +50,7 @@ export default function App() {
     const formData = new FormData();
     formData.append('codeFile', file);
     try {
-      const res = await fetch('http://localhost:5000/api/upload', { method: 'POST', body: formData });
+      const res = await fetch('https://codeforge-api.onrender.com/api/upload', { method: 'POST', body: formData });
       const data = await res.json();
       setDrillSnippet(data);
       setDrillLineIndex(0);
@@ -78,7 +78,7 @@ export default function App() {
   const handleDeleteSnippet = async (e, id) => {
     e.stopPropagation();
     try {
-      await fetch(`http://localhost:5000/api/snippets/${id}`, { method: 'DELETE' });
+      await fetch(`https://codeforge-api.onrender.com/api/snippets/${id}`, { method: 'DELETE' });
       setHistory(prev => prev.filter(s => s._id !== id));
       if (drillSnippet && drillSnippet._id === id) setViewMode('welcome');
     } catch (e) { alert('Failed to delete snippet.'); }
@@ -125,7 +125,7 @@ export default function App() {
         filenameToRun = `solution.${ext}`;
       }
 
-      const res = await fetch('http://localhost:5000/api/execute', {
+      const res = await fetch('https://codeforge-api.onrender.com/api/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
