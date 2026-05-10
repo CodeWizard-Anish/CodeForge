@@ -145,8 +145,8 @@ app.post('/api/execute', async (req, res) => {
 
     // Send to JDoodle
     const response = await axios.post('https://api.jdoodle.com/v1/execute', {
-      clientId: '1f1de56b9ef5de6939b8e72ccda12e81',         // <--- Put your ID here
-      clientSecret: '9708c55a1c4358a99ccef04f67cf305bf50b0f52fe533655ff6c91d82ebe3f97', // <--- Put your Secret here
+      clientId: process.env.JDOODLE_CLIENT_ID,         
+  clientSecret: process.env.JDOODLE_CLIENT_SECRET, // <--- Put your Secret here
       script: codeContent,
       language: language,
       versionIndex: versionIndex
@@ -200,8 +200,8 @@ app.post('/api/execute', async (req, res) => {
 
     // 3. Send the code securely to the JDoodle API
     const response = await axios.post('https://api.jdoodle.com/v1/execute', {
-      clientId: '1f1de56b9ef5de6939b8e72ccda12e81',         // <--- Replace this!
-      clientSecret: '9708c55a1c4358a99ccef04f67cf305bf50b0f52fe533655ff6c91d82ebe3f97', // <--- Replace this!
+      clientId: process.env.JDOODLE_CLIENT_ID,         
+  clientSecret: process.env.JDOODLE_CLIENT_SECRET, // <--- Replace this!
       script: codeContent,
       language: language,
       versionIndex: versionIndex
