@@ -36,7 +36,7 @@ export default function App() {
 
   const fetchHistory = async () => {
     try {
-      const res = await fetch('https://codeforge-api.onrender.com/api/snippets');
+      const res = await fetch('https://codeforge-bipz.onrender.com/api/snippets');
       
       // SAFETY CHECK: Ensure the server sent back a 200 OK before parsing JSON
       if (!res.ok) {
@@ -58,7 +58,7 @@ export default function App() {
     const formData = new FormData();
     formData.append('codeFile', file);
     try {
-      const res = await fetch('https://codeforge-api.onrender.com/api/upload', { 
+      const res = await fetch('https://codeforge-bipz.onrender.com/api/upload', { 
         method: 'POST', 
         body: formData 
       });
@@ -97,7 +97,7 @@ export default function App() {
   const handleDeleteSnippet = async (e, id) => {
     e.stopPropagation();
     try {
-      const res = await fetch(`https://codeforge-api.onrender.com/api/snippets/${id}`, { 
+      const res = await fetch(`https://codeforge-bipz.onrender.com/api/snippets/${id}`, { 
         method: 'DELETE' 
       });
       
@@ -151,7 +151,7 @@ export default function App() {
         filenameToRun = `solution.${ext}`;
       }
 
-      const res = await fetch('https://codeforge-api.onrender.com/api/execute', {
+      const res = await fetch('https://codeforge-bipz.onrender.com/api/execute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
