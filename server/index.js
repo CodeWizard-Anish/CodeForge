@@ -16,7 +16,11 @@ const app = express();
 const port = 5000;
 const execPromise = promisify(exec);
 
-app.use(cors());
+const corsOptions = {
+  origin: ['http://localhost:5173', 'https://code-forge-wine.vercel.app'], 
+  optionsSuccessStatus: 200 
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // --- CONNECT TO MONGODB ATLAS ---
@@ -144,7 +148,7 @@ app.post('/api/execute', async (req, res) => {
     }
 
     // Send to JDoodle
-    const response = await axios.post('https://api.jdoodle.com/v1/execute', {
+    const response = await axios.post('https://codeforge-bipz.onrender.com/v1/execute', {
       clientId: process.env.JDOODLE_CLIENT_ID,         
   clientSecret: process.env.JDOODLE_CLIENT_SECRET, // <--- Put your Secret here
       script: codeContent,
@@ -199,7 +203,7 @@ app.post('/api/execute', async (req, res) => {
     }
 
     // 3. Send the code securely to the JDoodle API
-    const response = await axios.post('https://api.jdoodle.com/v1/execute', {
+    const response = await axios.post('https://codeforge-bipz.onrender.com/v1/execute', {
       clientId: process.env.JDOODLE_CLIENT_ID,         
   clientSecret: process.env.JDOODLE_CLIENT_SECRET, // <--- Replace this!
       script: codeContent,
