@@ -3,6 +3,9 @@
 
 **CodeForge** is a full-stack interactive coding platform designed to bridge the gap between watching tutorials and writing real code. It combines a professional-grade editor with a unique "Line Drill" system to help developers master syntax and solve DSA problems with speed and precision.
 
+<img width="1908" height="888" alt="image" src="https://github.com/user-attachments/assets/9fc4b258-5f8b-400f-bfd1-1cc60bfa7733" />
+
+
 ### 🌐 Live Deployment
 * **Live Application:** [code-forge-wine.vercel.app](https://code-forge-wine.vercel.app/)
 * **Backend API:** [codeforge-bipz.onrender.com](https://codeforge-bipz.onrender.com)
